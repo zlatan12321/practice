@@ -1,24 +1,26 @@
-# Практика: TaxiOrder
+# Практика «TaxiOrder»
 
 ## Описание предметной области и сущностей
 
 В этой версии заказ такси сделан как доменная модель. Основная логика переходов между состояниями перенесена в TaxiOrder, а TaxiApi только создает нужные объекты и вызывает методы заказа
 
-TaxiOrder - основная сущность заказа. В ней хранятся клиент, адрес отправления, адрес назначения, водитель, статус и методы управления заказом
+TaxiOrder - основная сущность заказа. В ней хранятся клиент, маршрут, водитель, статус и методы управления заказом
+
+Route - объект-значение для маршрута. Хранит начальный адрес и адрес назначения.
 
 OrderTimeline - отдельный объект для временных отметок заказа: создание, назначение водителя, начало поездки, завершение и отмена
 
-Driver - сущность водителя. Содержит имя водителя и данные автомобиля.
+Driver - сущность водителя. Содержит имя водителя и данные автомобиля
 
-Car - объект-значение с данными автомобиля.
+Car - объект-значение с данными автомобил
 
-PersonName - объект-значение для имени и фамилии.
+PersonName - объект-значение для имени и фамилии
 
-Address - объект-значение для адреса.
+Address - объект-значение для адреса
 
-DriversRepository - репозиторий, который по id возвращает водителя и не работает с заказами.
+DriversRepository - репозиторий, который по id возвращает водителя и не работает с заказами
 
-TaxiApi - внешний слой, который сохраняет старый публичный интерфейс и делегирует действия TaxiOrder.
+TaxiApi - внешний слой, который сохраняет старый публичный интерфейс и делегирует действия TaxiOrder
 
 ```mermaid
 classDiagram
@@ -32,6 +34,7 @@ classDiagram
     }
 
     class TaxiOrder {
+        -Route route
         -OrderTimeline timeline
         +PersonName ClientName
         +Address Start
@@ -52,6 +55,13 @@ classDiagram
         +FinishRide(finishTime) void
         +GetDriverFullInfo() string
         +GetShortOrderInfo() string
+    }
+
+    class Route {
+        +Address Start
+        +Address Destination
+        +Route(start, destination)
+        +WithDestination(destination) Route
     }
 
     class OrderTimeline {
@@ -136,29 +146,32 @@ classDiagram
     Entity~int~ <|-- TaxiOrder
     Entity~int~ <|-- Driver
 
+    ValueType~Route~ <|-- Route
     ValueType~Car~ <|-- Car
     ValueType~PersonName~ <|-- PersonName
     ValueType~Address~ <|-- Address
 
     ITaxiApi~TaxiOrder~ <|.. TaxiApi
 
-    TaxiOrder *-- OrderTimeline : временные этапы
-    TaxiOrder *-- PersonName : клиент
-    TaxiOrder *-- Address : маршрут
-    TaxiOrder o-- Driver : назначенный водитель
-    TaxiOrder --> TaxiOrderStatus : состояние
+    TaxiOrder *-- Route
+    TaxiOrder *-- OrderTimeline
+    TaxiOrder *-- PersonName
+    TaxiOrder o-- Driver
+    TaxiOrder --> TaxiOrderStatus
 
-    Driver *-- PersonName : имя
-    Driver *-- Car : автомобиль
+    Route *-- Address
 
-    TaxiApi --> DriversRepository : получает водителя
-    TaxiApi ..> TaxiOrder : вызывает методы
-    TaxiApi ..> PersonName : создает клиента
-    TaxiApi ..> Address : создает адреса
+    Driver *-- PersonName
+    Driver *-- Car
 
-    DriversRepository ..> Driver : возвращает
-    DriversRepository ..> PersonName : создает имя
-    DriversRepository ..> Car : создает авто
+    TaxiApi --> DriversRepository
+    TaxiApi ..> TaxiOrder
+    TaxiApi ..> PersonName
+    TaxiApi ..> Address
 
-    OrderTimeline ..> TaxiOrderStatus : выбирает дату
+    DriversRepository ..> Driver
+    DriversRepository ..> PersonName
+    DriversRepository ..> Car
+
+    OrderTimeline ..> TaxiOrderStatus
 ```
