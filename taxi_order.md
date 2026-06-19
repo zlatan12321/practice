@@ -1,124 +1,37 @@
-# Практика «TaxiOrder»
+# Практика: TaxiOrder
 
 ## Описание предметной области и сущностей
 
-В этой версии заказ такси сделан как доменная модель. Основная логика переходов между состояниями перенесена в TaxiOrder, а TaxiApi только создает нужные объекты и вызывает методы заказа
+Программа управляет заказом такси от его создания до завершения или отмены.
 
-TaxiOrder - основная сущность заказа. В ней хранятся клиент, маршрут, водитель, статус и методы управления заказом
+TaxiOrder - сам управляет изменениями заказа и проверяет допустимость действий. Клиент, адрес отправления, адрес назначения и водитель хранятся в нем только один раз.
 
-Route - объект-значение для маршрута. Хранит начальный адрес и адрес назначения.
+ProgressRecord - одна запись в истории заказа. В ней сохраняется полученный статус и время перехода. Текущий статус TaxiOrder берется из последней записи истории.
 
-OrderTimeline - отдельный объект для временных отметок заказа: создание, назначение водителя, начало поездки, завершение и отмена
+PersonName - имя и фамилия человека.
 
-Driver - сущность водителя. Содержит имя водителя и данные автомобиля
+Address - улица и номер дома.
 
-Car - объект-значение с данными автомобил
+Driver - водитель с именем и автомобилем.
 
-PersonName - объект-значение для имени и фамилии
+Car - сведения об автомобиле: модель, цвет и государственный номер.
 
-Address - объект-значение для адреса
+DriversRepository - получает водителя по идентификатору и ничего не знает о заказах.
 
-DriversRepository - репозиторий, который по id возвращает водителя и не работает с заказами
+TaxiApi - сохраняет прежний интерфейс программы, но сам не изменяет заказ. Все действия передаются методам TaxiOrder.
 
-TaxiApi - внешний слой, который сохраняет старый публичный интерфейс и делегирует действия TaxiOrder
+## Диаграмма классов
 
 ```mermaid
 classDiagram
+    direction LR
+
     class Entity~TId~ {
-        <<abstract>>
         +TId Id
     }
 
     class ValueType~T~ {
         <<abstract>>
-    }
-
-    class TaxiOrder {
-        -Route route
-        -OrderTimeline timeline
-        +PersonName ClientName
-        +Address Start
-        +Address Destination
-        +Driver Driver
-        +TaxiOrderStatus Status
-        +DateTime CreationTime
-        +DateTime DriverAssignmentTime
-        +DateTime CancelTime
-        +DateTime StartRideTime
-        +DateTime FinishRideTime
-        +TaxiOrder(id, clientName, start, creationTime)
-        +UpdateDestination(destination) void
-        +AssignDriver(driver, assignmentTime) void
-        +UnassignDriver() void
-        +Cancel(cancelTime) void
-        +StartRide(startTime) void
-        +FinishRide(finishTime) void
-        +GetDriverFullInfo() string
-        +GetShortOrderInfo() string
-    }
-
-    class Route {
-        +Address Start
-        +Address Destination
-        +Route(start, destination)
-        +WithDestination(destination) Route
-    }
-
-    class OrderTimeline {
-        +DateTime CreationTime
-        +DateTime DriverAssignmentTime
-        +DateTime CancelTime
-        +DateTime StartRideTime
-        +DateTime FinishRideTime
-        +MarkDriverAssigned(time) void
-        +MarkCanceled(time) void
-        +MarkRideStarted(time) void
-        +MarkRideFinished(time) void
-        +GetLastProgressTime(status) DateTime
-    }
-
-    class Driver {
-        +PersonName Name
-        +Car Car
-        +Driver(id, name, car)
-    }
-
-    class Car {
-        +string Model
-        +string Color
-        +string PlateNumber
-        +Car(model, color, plateNumber)
-    }
-
-    class PersonName {
-        +string FirstName
-        +string LastName
-        +PersonName(firstName, lastName)
-    }
-
-    class Address {
-        +string Street
-        +string Building
-        +Address(street, building)
-    }
-
-    class DriversRepository {
-        +GetDriver(driverId) Driver
-    }
-
-    class TaxiApi {
-        -DriversRepository driversRepo
-        -Func~DateTime~ currentTime
-        -int idCounter
-        +CreateOrderWithoutDestination(firstName, lastName, street, building) TaxiOrder
-        +UpdateDestination(order, street, building) void
-        +AssignDriver(order, driverId) void
-        +UnassignDriver(order) void
-        +Cancel(order) void
-        +StartRide(order) void
-        +FinishRide(order) void
-        +GetDriverFullInfo(order) string
-        +GetShortOrderInfo(order) string
     }
 
     class ITaxiApi~TOrder~ {
@@ -134,6 +47,76 @@ classDiagram
         +GetShortOrderInfo(order) string
     }
 
+    class TaxiApi {
+        -DriversRepository driversRepository
+        -Func~DateTime~ getCurrentTime
+        -int nextOrderId
+        +CreateOrderWithoutDestination(firstName, lastName, street, building) TaxiOrder
+        +UpdateDestination(order, street, building) void
+        +AssignDriver(order, driverId) void
+        +UnassignDriver(order) void
+        +Cancel(order) void
+        +StartRide(order) void
+        +FinishRide(order) void
+        +GetDriverFullInfo(order) string
+        +GetShortOrderInfo(order) string
+    }
+
+    class DriversRepository {
+        +GetDriver(driverId) Driver
+    }
+
+    class TaxiOrder {
+        -List~ProgressRecord~ history
+        +PersonName ClientName
+        +Address Start
+        +Address Destination
+        +Driver Driver
+        +TaxiOrderStatus Status
+        +DateTime CreationTime
+        +DateTime DriverAssignmentTime
+        +DateTime CancelTime
+        +DateTime StartRideTime
+        +DateTime FinishRideTime
+        +UpdateDestination(destination) void
+        +AssignDriver(driver, assignmentTime) void
+        +UnassignDriver() void
+        +Cancel(cancelTime) void
+        +StartRide(startTime) void
+        +FinishRide(finishTime) void
+        +GetDriverFullInfo() string
+        +GetShortOrderInfo() string
+        -AddProgress(status, time) void
+        -FindLastTime(status) DateTime
+        -EnsureStatus(allowedStatuses) void
+    }
+
+    class ProgressRecord {
+        +TaxiOrderStatus Status
+        +DateTime Time
+    }
+
+    class PersonName {
+        +string FirstName
+        +string LastName
+    }
+
+    class Address {
+        +string Street
+        +string Building
+    }
+
+    class Driver {
+        +PersonName Name
+        +Car Car
+    }
+
+    class Car {
+        +string Model
+        +string Color
+        +string PlateNumber
+    }
+
     class TaxiOrderStatus {
         <<enumeration>>
         WaitingForDriver
@@ -143,35 +126,26 @@ classDiagram
         Canceled
     }
 
-    Entity~int~ <|-- TaxiOrder
-    Entity~int~ <|-- Driver
+    Entity~TId~ <|-- TaxiOrder
+    Entity~TId~ <|-- Driver
 
-    ValueType~Route~ <|-- Route
-    ValueType~Car~ <|-- Car
-    ValueType~PersonName~ <|-- PersonName
-    ValueType~Address~ <|-- Address
+    ValueType~T~ <|-- ProgressRecord
+    ValueType~T~ <|-- PersonName
+    ValueType~T~ <|-- Address
+    ValueType~T~ <|-- Car
 
-    ITaxiApi~TaxiOrder~ <|.. TaxiApi
+    ITaxiApi~TOrder~ <|.. TaxiApi
 
-    TaxiOrder *-- Route
-    TaxiOrder *-- OrderTimeline
-    TaxiOrder *-- PersonName
-    TaxiOrder o-- Driver
-    TaxiOrder --> TaxiOrderStatus
+    TaxiApi --> DriversRepository : хранит ссылку
+    TaxiApi ..> TaxiOrder : создает и вызывает команды
+    DriversRepository ..> Driver : возвращает
 
-    Route *-- Address
+    TaxiOrder "1" *-- "1..*" ProgressRecord : история состояний
+    TaxiOrder "1" o-- "1" PersonName : клиент
+    TaxiOrder "1" o-- "1..2" Address : адреса поездки
+    TaxiOrder "1" o-- "0..1" Driver : назначение
 
-    Driver *-- PersonName
-    Driver *-- Car
+    Driver "1" o-- "1" PersonName : имя
+    Driver "1" o-- "1" Car : автомобиль
 
-    TaxiApi --> DriversRepository
-    TaxiApi ..> TaxiOrder
-    TaxiApi ..> PersonName
-    TaxiApi ..> Address
-
-    DriversRepository ..> Driver
-    DriversRepository ..> PersonName
-    DriversRepository ..> Car
-
-    OrderTimeline ..> TaxiOrderStatus
-```
+    ProgressRecord --> TaxiOrderStatus : фиксирует
