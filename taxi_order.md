@@ -149,3 +149,4 @@ classDiagram
     Driver "1" o-- "1" Car : автомобиль
 
     ProgressRecord --> TaxiOrderStatus : фиксирует
+```
